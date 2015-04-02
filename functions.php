@@ -1,24 +1,40 @@
 <?
-	function event_points($event, $settings) {
-		$teams = json_decode(file_get_contents('http://www.thebluealliance.com/api/v2/event/'.$event.'/teams?X-TBA-App-Id='.$settings["tba_id"].":".$settings["tba_description"].":".$settings["tba_version"]),true);
+	function tba_get($url){
+	global $settings;
+	return json_decode(file_get_contents('http://www.thebluealliance.com/api/v2/'.$url.'?X-TBA-App-Id='.$settings["tba_id"].":".$settings["tba_description"].":".$settings["tba_version"]),true);
+	}
+	
+	function event_points($event) {
+		//calculates the total points available at the event
+		
+		$teams = tba_get('event/'.$event.'/teams');
+
 		for ($i=0; $i<count($teams); $i++) {
 			//echo 'rank: '.($i+1).' points: '.qual_points(count($teams),$i+1).'</br>';
 			$qualpoints=$qualpoints+qual_points(count($teams),$i+1);
 		}
+		
 		//echo $qualpoints.'</br>';
 		//echo 532+$qualpoints;
+		
 		return 532+$qualpoints;
 	}
 	
-	function total_points($district, $year, $settings) {
-		$events = json_decode(file_get_contents('http://www.thebluealliance.com/api/v2/district/'.$district.'/'.$year.'/events?X-TBA-App-Id='.$settings["tba_id"].":".$settings["tba_description"].":".$settings["tba_version"]),true);
+	function total_points($district, $year) {
+		//calculates the total points available in an entire district, not including dcmp
+		//future addition, boolean $dcmp argument, if true include dcmp in calculation
+		
+		$events = tba_get('district/'.$district.'/'.$year.'/events');
+
 		for ($i=0; $i<count($events); $i++) {
 			if ($events[$i]['event_type'] == 1) {
-				//echo $events[$i]['key'].' '.event_points($events[$i]['key'],$settings).'</br>';
-				$points=$points+event_points($events[$i]['key'],$settings);
+				//echo $events[$i]['key'].' '.event_points($events[$i]['key']).'</br>';
+				$points=$points+event_points($events[$i]['key']);
 			}
 		}
+		
 		return array($points,count($events)-1);
+	
 	}
 	
 	function qual_points($n, $r){
